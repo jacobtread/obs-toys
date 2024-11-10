@@ -1,3 +1,4 @@
+use anyhow::Context;
 use obws::Client;
 
 #[tokio::main]
@@ -19,7 +20,19 @@ async fn main() -> anyhow::Result<()> {
     let scene_list = client.scenes().list().await?;
     println!("{scene_list:#?}");
 
-    scene_list.scenes.iter().for_each(|scene| {});
+    let blank_scene_id: uuid::Uuid = std::env::var("OBS_BLANK_SCENE")?.parse()?;
+
+    let blank_scene = scene_list
+        .scenes
+        .iter()
+        .find(|scene| scene.id.uuid == blank_scene_id)
+        .context("failed to find blank screen")?;
+
+    // Set current scene to the blank screen
+    client
+        .scenes()
+        .set_current_program_scene(blank_scene.id.clone())
+        .await?;
 
     Ok(())
 }
